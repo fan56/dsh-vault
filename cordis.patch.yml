@@ -1,0 +1,7 @@
+# dsh-vault bundle patch: mounts the plugin into the profile's assembly tree
+# under the stable plugin id `dsh-vault`. It registers the `vault` settings
+# namespace and the `/vault` slash command (backup / restore / config / set).
+
+- insert:
+    - id: dsh-vault
+      name: '@aiwayds/dsh-vault'

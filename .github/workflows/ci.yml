@@ -1,0 +1,68 @@
+# CI: build, typecheck, unit suite, and a real-host boot smoke on every push
+# to main, every pull request, and a daily schedule.
+#
+# The dsh CLI version is resolved at runtime from the npm registry's latest
+# tag — never hand-pinned (the rc.8 lesson: a hand-pinned rc went stale and
+# rotted the gate). The smoke boots a scratch profile with the plugin mounted
+# via the real dsh CLI (scripts/smoke-boot.mjs) so "loads under real cordis"
+# is a gate, not a hope.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Daily 03:23 UTC — catches upstream dsh drift without hand-pinning.
+    - cron: '23 3 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: Build, Test & Boot-Smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          # pnpm-lock.yaml is committed and MUST be regenerated in the same
+          # commit as any package.json change — CI installs frozen and fails
+          # fast otherwise (the dsh-tui-pi v1.0.5 lesson).
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          # engines: node >=22.19.0
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Install dsh CLI (runtime-resolved latest, never hand-pinned)
+        run: |
+          DSH_VERSION="$(npm view @deepseek-ai/dsh version)"
+          echo "dsh closure: ${DSH_VERSION}"
+          npm install -g "@deepseek-ai/dsh@${DSH_VERSION}" --no-audit --no-fund
+
+      # pnpm does not run npm pre/post hooks by default, so build explicitly
+      # before test (the test files import lib/).
+      - name: Build & Check (tsc)
+        run: pnpm build && pnpm check
+
+      - name: Test (unit suite)
+        run: pnpm test
+
+      - name: Boot smoke (real dsh host, scratch profile)
+        run: node scripts/smoke-boot.mjs
