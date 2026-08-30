@@ -40,6 +40,7 @@ import {
   GitHubError,
 } from './gh.ts'
 import { buildPlan, executeRestore } from './restore.ts'
+import { renderSnapshotTable, formatBytes } from './table.ts'
 import {
   keychainSupported,
   getRememberedPassphrase,
@@ -99,14 +100,15 @@ function fail(text: string): CommandResult {
 }
 
 function formatKB(bytes: number): string {
-  return bytes >= 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${bytes} B`
+  return formatBytes(bytes)
 }
 
 const HELP = [
   'dsh-vault — 加密备份 / 恢复 / 迁移 dsh 配置（GitHub 私有仓库）',
   '  /vault backup [口令]            备份并推送（口令不落会话日志）',
+  '  /vault list                     表格列出 Vault 里所有机器的备份信息',
   '  /vault restore [机器] [--yes] [口令]',
-  '                                  不带机器名 = 列出 Vault 里所有机器的快照；跨机选择即迁移',
+  '                                  不带机器名 = 列表快照；跨机选择即迁移',
   '  /vault config                   查看当前设置',
   '  /vault set repo <owner/name> | set machine-desc <描述> | set remember-passphrase on|off',
   '',
@@ -128,8 +130,8 @@ export function apply(ctx: Context): void {
         name: 'vault',
         // recordInput stays off: the raw input may carry the passphrase.
         recordInput: false,
-        description: '加密备份 / 恢复 / 迁移 dsh 配置到 GitHub 私有仓库（backup | restore | config | set）',
-        input: { hint: '[backup [口令] | restore [机器] [--yes] [口令] | config | set <key> <value>]' },
+        description: '加密备份 / 恢复 / 迁移 dsh 配置到 GitHub 私有仓库（backup | list | restore | config | set）',
+        input: { hint: '[backup [口令] | list | restore [机器] [--yes] [口令] | config | set <key> <value>]' },
         handler: (invocation) => handle(invocation),
       }
       return commands.register(definition)
@@ -145,6 +147,8 @@ export function apply(ctx: Context): void {
           return ok(HELP)
         case 'backup':
           return await doBackup(rest.join(' '), invocation.signal)
+        case 'list':
+          return await doList(invocation.signal)
         case 'restore':
           return await doRestore(rest, invocation.signal)
         case 'config':
@@ -195,6 +199,30 @@ export function apply(ctx: Context): void {
         '  3. /vault set remember-passphrase on 之后完成一次带口令的 backup（存入 macOS 钥匙串）',
       ].join('\n'),
     }
+  }
+
+  // -----------------------------------------------------------------------
+  // /vault list
+  // -----------------------------------------------------------------------
+
+  const EMPTY_VAULT = (fullName: string): string =>
+    `Vault ${fullName} 里还没有任何机器的快照 —— 先在源机器上 /vault backup。`
+
+  const doList = async (signal: AbortSignal | undefined): Promise<CommandResult> => {
+    const cfg = cfgNow()
+    const client = await makeClient()
+    const { fullName } = await resolveRepo(client, cfg.repo, false)
+    const machines = await listMachines(client, fullName, signal)
+    if (machines.length === 0) return ok(EMPTY_VAULT(fullName))
+    return ok(
+      [
+        `Vault ${fullName}（${machines.length} 台机器）：`,
+        '',
+        renderSnapshotTable(machines, vaultMachineName()),
+        '',
+        'manifest 为明文元数据，不含密钥材料；/vault restore <机器名> 查看恢复计划。',
+      ].join('\n'),
+    )
   }
 
   // -----------------------------------------------------------------------
@@ -275,20 +303,16 @@ export function apply(ctx: Context): void {
     const machines = await listMachines(client, fullName, signal)
 
     if (machine === undefined) {
-      if (machines.length === 0) {
-        return ok(`Vault ${fullName} 里还没有任何机器的快照 —— 先在源机器上 /vault backup。`)
-      }
-      const lines = [`Vault ${fullName} 中的快照：`]
-      for (const m of machines) {
-        const man = m.manifest
-        const desc = man?.description !== undefined && man.description !== '' ? man.description : '—'
-        const when = man?.createdAt ?? '未知时间'
-        const size = man !== undefined ? formatKB(man.blobSize) : '?'
-        const count = man?.files.length ?? '?'
-        lines.push(`  • ${m.machine} — ${desc} — ${when} — ${count} 文件 / ${size}`)
-      }
-      lines.push('→ /vault restore <机器名> 查看恢复计划；加 --yes 执行（跨机选择即迁移）。')
-      return ok(lines.join('\n'))
+      if (machines.length === 0) return ok(EMPTY_VAULT(fullName))
+      return ok(
+        [
+          `Vault ${fullName} 中的快照：`,
+          '',
+          renderSnapshotTable(machines, vaultMachineName()),
+          '',
+          '→ /vault restore <机器名> 查看恢复计划；加 --yes 执行（跨机选择即迁移）。',
+        ].join('\n'),
+      )
     }
 
     const target = machines.find((m) => m.machine === machine)

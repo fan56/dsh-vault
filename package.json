@@ -32,7 +32,7 @@
     "build": "tsc -p tsconfig.json",
     "check": "tsc --noEmit -p tsconfig.json",
     "pretest": "tsc -p tsconfig.json",
-    "test": "node --test test/crypto.test.mjs test/backupset.test.mjs test/manifest.test.mjs test/command.test.mjs",
+    "test": "node --test test/crypto.test.mjs test/backupset.test.mjs test/manifest.test.mjs test/table.test.mjs test/command.test.mjs",
     "smoke": "node scripts/smoke-boot.mjs",
     "e2e": "./e2e/run-e2e.sh"
   },

@@ -8,8 +8,10 @@
 
 ```
 /vault backup [口令]              备份并推送（repo 不存在则自动创建 private）
+/vault list                       表格列出 Vault 里所有机器的备份信息
+                                  （机器/描述/快照时间/文件数/大小，← 本机 标记）
 /vault restore [机器] [--yes] [口令]
-                                  不带机器名 = 列出 Vault 里所有机器的快照
+                                  不带机器名 = 列表快照
                                   跨机选择 = 迁移；--yes 才真正执行
 /vault config                     查看当前设置
 /vault set repo <owner/name>      覆盖默认仓库名

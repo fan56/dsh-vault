@@ -95,18 +95,39 @@ process.env.DSH_HOME = home
 process.env.DSH_VAULT_PASSPHRASE = PASSPHRASE
 
 const machine = vaultMachineName()
+
+// Probe whether the scratch repo already exists (it survives runs — the gh
+// token usually lacks delete_repo), so the auto-create assertion matches.
+const token = process.env.GITHUB_TOKEN ?? spawnSync('gh', ['auth', 'token'], { encoding: 'utf8' }).stdout?.trim()
+let repoExists = false
+if (token) {
+  const probe = await fetch(`https://api.github.com/repos/${SCRATCH_REPO}`, {
+    headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'User-Agent': 'dsh-vault-e2e' },
+  })
+  repoExists = probe.ok
+}
+
 try {
-  // 1 — backup (auto-creates the private scratch repo)
+  // 1 — backup (auto-creates the private scratch repo when absent)
   const backup = await run('backup')
   if (backup.kind !== 'success' || !backup.text.includes('snapshot.enc')) {
     fail('backup did not succeed', backup.text)
   }
-  if (!backup.text.includes('自动创建')) fail('scratch repo should have been auto-created')
+  if (backup.text.includes('自动创建') === repoExists) {
+    fail(`auto-create note wrong (repo pre-existed: ${repoExists})`, backup.text)
+  }
 
-  // 2 — list shows the machine
-  const list = await run('restore')
+  // 2 — list shows the machine (and the table renderer)
+  const list = await run(`list`)
   if (list.kind !== 'success' || !list.text.includes(machine)) {
-    fail(`restore list does not show machine ${machine}`, list.text)
+    fail(`list does not show machine ${machine}`, list.text)
+  }
+  if (!list.text.includes('机器') || !list.text.includes('快照时间')) {
+    fail('list is not rendered as the snapshot table', list.text)
+  }
+  const listViaRestore = await run('restore')
+  if (listViaRestore.kind !== 'success' || !listViaRestore.text.includes(machine)) {
+    fail(`restore list does not show machine ${machine}`, listViaRestore.text)
   }
 
   // 3 — plan preview is gated behind --yes
@@ -140,7 +161,6 @@ try {
   // Best-effort cleanup: remove the two files so no test blob lingers.
   // The gh token usually lacks delete_repo, so the empty private repo stays;
   // report it instead of pretending it was deleted.
-  const token = process.env.GITHUB_TOKEN ?? spawnSync('gh', ['auth', 'token'], { encoding: 'utf8' }).stdout?.trim()
   if (token) {
     const del = async (path) => {
       const base = 'https://api.github.com'
