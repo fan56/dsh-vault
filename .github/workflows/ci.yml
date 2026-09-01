@@ -1,11 +1,16 @@
 # CI: build, typecheck, unit suite, and a real-host boot smoke on every push
 # to main, every pull request, and a daily schedule.
 #
-# The dsh CLI version is resolved at runtime from the npm registry's latest
-# tag — never hand-pinned (the rc.8 lesson: a hand-pinned rc went stale and
-# rotted the gate). The smoke boots a scratch profile with the plugin mounted
-# via the real dsh CLI (scripts/smoke-boot.mjs) so "loads under real cordis"
-# is a gate, not a hope.
+# The dsh CLI version is resolved at runtime from the npm registry's rolling
+# `alpha` dist-tag — never hand-pinned (the rc.8 lesson: a hand-pinned rc
+# went stale and rotted the gate). The plugin targets the 0.1.2-alpha line;
+# `latest` still points at the rc line it dropped. scripts/link-dsh-closure.mjs
+# then re-points node_modules/@deepseek-ai/* at that install's closure, so
+# typecheck, tests, and the smoke all run against exactly the code the host
+# ships (one @deepseek-ai/cordis in the type graph). The smoke boots a scratch
+# profile with the plugin mounted via the real dsh CLI
+# (scripts/smoke-boot.mjs) so "loads under real cordis" is a gate, not a
+# hope.
 name: CI
 
 on:
@@ -50,11 +55,17 @@ jobs:
       - name: Install dependencies (frozen lockfile)
         run: pnpm install --frozen-lockfile
 
-      - name: Install dsh CLI (runtime-resolved latest, never hand-pinned)
+      - name: Install dsh CLI (rolling @alpha dist-tag, never hand-pinned)
         run: |
-          DSH_VERSION="$(npm view @deepseek-ai/dsh version)"
+          DSH_VERSION="$(npm view @deepseek-ai/dsh@alpha version)"
           echo "dsh closure: ${DSH_VERSION}"
           npm install -g "@deepseek-ai/dsh@${DSH_VERSION}" --no-audit --no-fund
+
+      # Point node_modules/@deepseek-ai/* at the installed CLI's closure so
+      # tsc sees exactly the type graph the host runs (one cordis instance —
+      # a second local copy breaks the ctx.settings declare-module merge).
+      - name: Link dsh closure types
+        run: node scripts/link-dsh-closure.mjs
 
       # pnpm does not run npm pre/post hooks by default, so build explicitly
       # before test (the test files import lib/).

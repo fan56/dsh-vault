@@ -15,7 +15,12 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import z from '@deepseek-ai/schemastery'
 import type { Context } from '@deepseek-ai/cordis'
-import { settingsNamespace } from '@deepseek-ai/dsh-settings'
+// Type-only side-effect import: loads dsh-settings' `declare module
+// '@deepseek-ai/cordis'` augmentation, which is what puts `ctx.settings` on
+// the Context type. There is no runtime import — the host provides the
+// settings service; dsh-settings 0.1.2-alpha.3 removed the
+// settingsNamespace() helper this file used to import.
+import type {} from '@deepseek-ai/dsh-settings'
 // Types only (erased at emit); dsh-commands is an optional peer, so hosts
 // without it still load this plugin — see the guarded registration below.
 import type { CommandDefinition, CommandInvocation, CommandResult } from '@deepseek-ai/dsh-commands'
@@ -53,7 +58,12 @@ export const name = 'dsh-vault'
 /** The settings seam this plugin consumes (its own config namespace). */
 export const inject = ['settings']
 
-const OWN_NS = settingsNamespace('vault')
+// dsh-settings 0.1.2-alpha.3 removed the runtime settingsNamespace() helper:
+// register() now brand-checks the namespace at the type level
+// (SettingsNamespaceInput) and validates the same lowercase-hyphenated
+// pattern at runtime via parseSettingsNamespace. A plain literal is the
+// supported spelling (same adaptation as dsh-model-sync / dsh-cron).
+const OWN_NS = 'vault'
 
 /** The `vault` settings namespace: user-editable in settings.yaml. */
 const VaultConfig = z.object({
@@ -71,10 +81,12 @@ interface VaultConfigValue {
   rememberPassphrase: boolean
 }
 
-/** The settings seam this plugin needs for /vault set. */
+/** The settings seam this plugin needs for /vault set. The host's
+ *  mutate() validates the namespace at runtime (parseSettingsNamespace),
+ *  so the plain 'vault' literal is all it requires. */
 interface SettingsService {
   mutate(
-    ns: ReturnType<typeof settingsNamespace>,
+    ns: string,
     ops: readonly { op: 'set' | 'unset'; path: string[]; value?: unknown }[],
     expectedRevision?: number,
   ): Promise<void>

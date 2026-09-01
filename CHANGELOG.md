@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **BREAKING — dsh host floor `>= 0.1.2-alpha.3`, rc-line support dropped**: all pins move to the 0.1.2-alpha.3 host closure（peers cordis ^4.0.2、dsh-commands / dsh-settings >=0.1.2-alpha.3、schemastery ^3.18.2；devDependencies 精确钉版）。
+- dsh-settings 0.1.2-alpha.3 移除了 `settingsNamespace()` 运行时助手：`vault` 命名空间改为普通字面量（类型级品牌校验 `SettingsNamespaceInput` + 宿主侧运行时校验）；通过 type-only side-effect import 保留 dsh-settings 对 cordis 的 ctx.settings 增强。
+
+### Added
+
+- CI 的 dsh CLI 安装改走滚动 `@alpha` dist-tag（latest 仍指向被放弃的 rc 线），并新增 `scripts/link-dsh-closure.mjs` 把 `node_modules/@deepseek-ai/*` 指到已装宿主的闭包，typecheck / 单测 / smoke 与宿主完全同源。
+
 ## 0.1.0
 
 首个版本。
