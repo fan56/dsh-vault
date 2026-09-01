@@ -42,9 +42,9 @@ jobs:
       - name: Install dependencies (frozen lockfile)
         run: pnpm install --frozen-lockfile
 
-      - name: Install dsh CLI (runtime-resolved latest, never hand-pinned)
+      - name: Install dsh CLI (runtime-resolved @alpha, never hand-pinned)
         run: |
-          DSH_VERSION="$(npm view @deepseek-ai/dsh version)"
+          DSH_VERSION="$(npm view @deepseek-ai/dsh@alpha version)"
           echo "dsh closure: ${DSH_VERSION}"
           npm install -g "@deepseek-ai/dsh@${DSH_VERSION}" --no-audit --no-fund
 
