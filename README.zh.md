@@ -4,7 +4,7 @@
 
 [dsh](https://github.com/deepseek-ai/deepseek-harness) 插件：把本机 dsh 配置**加密备份**到自己的 GitHub 私有仓库，在新机器上**一条命令拉平**——恢复配置、按清单重装插件，跨机恢复即迁移。
 
-**Requires dsh >= 0.1.2-alpha.4** —— 本插件只面向 0.1.2-alpha 宿主线，rc 线不再支持。
+**要求 dsh >= 0.1.2-rc.1** — 本插件只跟随 dsh RC/stable 线（CI 与发版在运行时解析 latest/next 中更新的 dist-tag）。**不再支持 alpha 线。**
 
 零 npm 依赖：加密只用 Node 内置 `crypto`（scrypt + AES-256-GCM），GitHub 传输走 REST。
 

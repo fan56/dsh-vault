@@ -1,9 +1,12 @@
 # Changelog
 
-## Unreleased
+## 0.3.0
 
 ### Changed
 
+- **BREAKING — 只跟随 dsh RC/stable 线，alpha 线退役**：README 宣布本插件仅支持 rc/stable 宿主线，不再支持 alpha 线。
+- **dsh host floor `>= 0.1.2-rc.1`**：peerDependencies 下限全部迁到 0.1.2-rc.1，devDependencies 闭包精确钉版 0.1.2-rc.1（原 0.1.2-alpha.4）。
+- CI 与发版工作流安装 dsh CLI 改为运行时解析 `latest`（stable）/`next`（rc）dist-tag 中更新者（plain semver compare，stable 0.1.2+ 上线 `latest` 即自动胜出），不再读已退役的 `@alpha`。
 - **BREAKING — dsh host floor `>= 0.1.2-alpha.3`, rc-line support dropped**: all pins move to the 0.1.2-alpha.3 host closure（peers cordis ^4.0.2、dsh-commands / dsh-settings >=0.1.2-alpha.3、schemastery ^3.18.2；devDependencies 精确钉版）。
 - dsh-settings 0.1.2-alpha.3 移除了 `settingsNamespace()` 运行时助手：`vault` 命名空间改为普通字面量（类型级品牌校验 `SettingsNamespaceInput` + 宿主侧运行时校验）；通过 type-only side-effect import 保留 dsh-settings 对 cordis 的 ctx.settings 增强。
 
