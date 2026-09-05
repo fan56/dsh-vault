@@ -24,6 +24,19 @@
                                   on 时下一次带口令的 backup 把口令存入钥匙串
 ```
 
+## 卸载
+
+```bash
+dsh plugin --profile tui remove @aiwayds/dsh-vault
+```
+
+宿主会自动清理 profile：`dsh.profile.bundles` 条目被摘除，插件的 patch 层随之卸下。但这是一个涉密/备份插件，有几样东西**在卸载后仍然留存**——`remove` 一概不碰，需自行处置：
+
+1. **macOS 钥匙串条目**（service + account 均为 `dsh-vault`），存着记住的口令。卸载前先 `/vault set remember-passphrase off` 关掉，或卸载后在「钥匙串访问」里手工删除该条目。
+2. **GitHub 私有仓库 `dsh-backup-<用户名>`**（首次 backup 自动创建），存着加密快照——不需要就在 GitHub 上删除。
+3. **`~/.dsh/vault/stash/`**——最多 3 份 restore 前的整包配置暂存（含 `.credentials.yaml`，权限 0600）。`rm -r ~/.dsh/vault` 清掉。
+4. **`~/.dsh/settings.yaml` 里的 `vault:` 段**——手工删除相关行。
+
 ## 备份集
 
 **进**：`settings.yaml`、`.credentials.yaml`（API keys）、`APPEND_SYSTEM.md`、`agents/`、每个 profile 的清单四件套（`package.json` / `pnpm-lock.yaml` / `pnpm-workspace.yaml` / `cordis.patch.yml`）、home 级 `cordis.patch.yml`、`models-store.json`。

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.1
+
+### Changed
+
+- README（en/zh）新增「卸载」一节：`dsh plugin remove` 命令、宿主自动清理范围（bundles 条目 + patch 层），以及四样卸载后仍留存的物件——钥匙串条目 `dsh-vault`（先 `/vault set remember-passphrase off` 或事后在钥匙串访问删除）、GitHub 私有仓库 `dsh-backup-<用户名>`、`~/.dsh/vault/stash/` 暂存（含 `.credentials.yaml`，`rm -r ~/.dsh/vault` 清除）、settings.yaml 的 `vault:` 段。
+- boot 冒烟（`scripts/smoke-boot.mjs`）新增卸载环节：boot 证明之后执行 `dsh plugin --profile smoke remove`，并断言组合树已回到 stock 形态（再次 `--dump-config` 中插件 id 消失）。
+
 ## 0.3.0
 
 ### Changed

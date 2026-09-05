@@ -26,6 +26,19 @@ Zero npm dependencies: encryption uses only Node's built-in `crypto` (scrypt + A
                                   the macOS keychain for automatic reuse
 ```
 
+## Uninstall
+
+```bash
+dsh plugin --profile tui remove @aiwayds/dsh-vault
+```
+
+The host cleans up the profile automatically: the `dsh.profile.bundles` entry is spliced and the plugin's patch layer drops. This is a secrets/backup plugin, so be explicit about what **outlives** the removal — none of it is touched by `remove`:
+
+1. **The macOS Keychain item** (service + account `dsh-vault`) holding a remembered passphrase. Turn it off before uninstalling with `/vault set remember-passphrase off`, or delete the item afterwards in Keychain Access.
+2. **The private GitHub repo `dsh-backup-<login>`** holding your encrypted snapshots (auto-created on first backup) — delete it on GitHub if unwanted.
+3. **`~/.dsh/vault/stash/`** — up to 3 pre-restore stashes of the full config, including `.credentials.yaml` (mode 0600). Purge with `rm -r ~/.dsh/vault`.
+4. **The `vault:` section in `~/.dsh/settings.yaml`** — remove the lines by hand.
+
 ## Backup set
 
 **In**: `settings.yaml`, `.credentials.yaml` (API keys), `APPEND_SYSTEM.md`, `agents/`, each profile's manifest four-pack (`package.json` / `pnpm-lock.yaml` / `pnpm-workspace.yaml` / `cordis.patch.yml`), the home-level `cordis.patch.yml`, and `models-store.json`.
