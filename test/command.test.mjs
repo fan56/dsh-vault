@@ -42,6 +42,11 @@ function createFakeContext({ config = defaultConfig } = {}) {
     settings: { register: () => scope },
     get: (name) => (name === 'settings' ? settingsService : undefined),
     logger: { info() {}, warn() {}, debug() {} },
+    skills: {
+      registerProvider() {
+        return () => {}
+      },
+    },
     effect(fn) {
       const disposer = fn()
       if (typeof disposer === 'function') state.effectDisposers ??= []

@@ -24,6 +24,24 @@
                                   on 时下一次带口令的 backup 把口令存入钥匙串
 ```
 
+## 配置
+
+全部配置都在 `~/.dsh/settings.yaml` 的顶层 `vault:` 段——与 `/vault set` 写回的是同一段：
+
+```yaml
+vault:
+  repo: ""                        # owner/name 覆盖；空 = 默认 dsh-backup-<用户名>
+  machineDescription: ""          # 写进快照清单的机器描述
+  rememberPassphrase: false       # backup 时把口令存入 macOS 钥匙串
+```
+
+口令来源优先级：命令内联参数（不落日志）→ `$DSH_VAULT_PASSPHRASE` 环境变量 →
+macOS 钥匙串（`rememberPassphrase` 开启时）。GitHub 凭据来自 `$GITHUB_TOKEN`
+或已登录的 `gh` CLI。
+
+插件内置了一个 skill（`dsh-vault`）：直接让 agent「帮我配置备份 / 做首次备份」，
+指南会自动加载——以问答方式逐项收集（仓库、机器描述、口令记忆）并代写 `vault:` 段。
+
 ## 卸载
 
 ```bash

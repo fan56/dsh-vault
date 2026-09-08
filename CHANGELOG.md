@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0
+
+### Added
+
+- **内置技能（bundled skill）**：插件随包注册 `dsh-vault` skill（`skills/dsh-vault/SKILL.md`，经 `ctx.skills.registerProvider`，与 dsh-llm-proxy 同款机制）。用户在会话里问备份/迁移/配置 vault 时，agent 自动加载指南；指南核心是一段 ask_user_question 交互式配置向导——先查 `gh auth status`，再逐题收集（仓库 owner/name、机器描述、是否钥匙串记口令），代写 settings.yaml 的 `vault:` 段，并引导用户以 `/vault backup <口令>` 完成首次备份（口令不落会话日志、遗失不可解两条红线写进指南）。
+- README（en/zh）新增「配置 / Configuration」一节：`vault:` 三键表格、口令来源优先级、GitHub 凭据来源，并指向内置 skill。
+- 新增 `test/skill.test.mjs`：provider 注册、候选元数据（500 字符路由预算、resourceBase 指向打包的 skills/ 目录）、get() 去除 frontmatter、硬编码 description 与 SKILL.md frontmatter 反漂移断言、`stripFrontmatter` 边界。
+
 ## 0.3.1
 
 ### Changed

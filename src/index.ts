@@ -11,10 +11,18 @@
  */
 
 import { readFileSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import z from '@deepseek-ai/schemastery'
 import type { Context } from '@deepseek-ai/cordis'
+// Types only (erased at emit). The runtime import is deliberately avoided:
+// the registry-published dsh-skill lib imports host-closure siblings
+// (@deepseek-ai/dsh-scope, dsh-llm — peers of it, but absent from a plugin
+// repo's own dependency graph), which dies under pnpm's isolated layout.
+// The host injects the real service at runtime; these types only shape the
+// provider object this plugin hands it.
+import type { SkillCandidate, SkillDefinition, SkillProvider } from '@deepseek-ai/dsh-skill'
 // Type-only side-effect import: loads dsh-settings' `declare module
 // '@deepseek-ai/cordis'` augmentation, which is what puts `ctx.settings` on
 // the Context type. There is no runtime import — the host provides the
@@ -55,8 +63,9 @@ import {
 
 export const name = 'dsh-vault'
 
-/** The settings seam this plugin consumes (its own config namespace). */
-export const inject = ['settings']
+/** Seams consumed: the config namespace plus the skill registry that serves
+ *  the bundled usage/config guide. */
+export const inject = ['settings', 'skills']
 
 // dsh-settings 0.1.2-alpha.3 removed the runtime settingsNamespace() helper:
 // register() now brand-checks the namespace at the type level
@@ -129,7 +138,88 @@ const HELP = [
   '口令遗失 = 快照永久不可解，插件不做找回。',
 ].join('\n')
 
+// --- Bundled skill -----------------------------------------------------------
+
+/** Provider name under `ctx.skills`; doubles as the skill name. */
+const SKILL_PROVIDER_NAME = 'dsh-vault'
+
+/** Packaged skill body; `../skills/` resolves to the package root from both lib/ and src/. */
+const SKILL_BODY_URL = new URL('../skills/dsh-vault/SKILL.md', import.meta.url)
+
+/** Resource base served with the skill so its relative links resolve. */
+const SKILL_RESOURCE_BASE = {
+  kind: 'directory',
+  path: fileURLToPath(new URL('../skills/dsh-vault/', import.meta.url)),
+} as const
+
+const SKILL_INVOCATION = { modelInvocable: true, userInvocable: true } as const
+
+/** Mirrors dsh-skill's bundled-skill rank (a non-load-bearing ordering hint;
+ *  the constant is hardcoded there too). Local copy — see the type-import
+ *  note above for why dsh-skill is not loaded at runtime here. */
+const BUNDLED_SKILL_RANK = 600
+
+/** Routing description; must stay identical to the SKILL.md frontmatter (asserted in tests). */
+const SKILL_DESCRIPTION = 'dsh 加密备份插件（@aiwayds/dsh-vault）使用与配置指南。凡涉及 dsh 配置备份、跨机器迁移、/vault backup/restore/list，或要配置 vault 段时先读本指南：settings.yaml 顶层 `vault:` 段（repo/machineDescription/rememberPassphrase）、首次备份 ask_user_question 向导（收集仓库/机器描述/口令记忆后代写配置）、口令三种来源（参数/env/钥匙串）、GitHub 凭据（GITHUB_TOKEN 或 gh 登录）、口令遗失不可解。触发词：vault、备份、恢复、迁移、快照、钥匙串、passphrase、dsh-backup。'
+
+const SKILL_CANDIDATE: SkillCandidate = {
+  name: SKILL_PROVIDER_NAME,
+  description: SKILL_DESCRIPTION,
+  invocation: SKILL_INVOCATION,
+  provider: SKILL_PROVIDER_NAME,
+  source: 'bundled',
+  resourceBase: SKILL_RESOURCE_BASE,
+  rank: BUNDLED_SKILL_RANK,
+  locator: SKILL_BODY_URL,
+}
+
+const skillProvider: SkillProvider = {
+  name: SKILL_PROVIDER_NAME,
+  list: () => Promise.resolve([SKILL_CANDIDATE]),
+  async get(_candidate): Promise<SkillDefinition> {
+    return {
+      name: SKILL_CANDIDATE.name,
+      description: SKILL_CANDIDATE.description,
+      invocation: SKILL_CANDIDATE.invocation,
+      provider: SKILL_CANDIDATE.provider,
+      source: SKILL_CANDIDATE.source,
+      resourceBase: SKILL_RESOURCE_BASE,
+      content: stripFrontmatter(await readFile(SKILL_BODY_URL, 'utf8')),
+    }
+  },
+}
+
+/**
+ * Strip a leading YAML frontmatter block (`---` / body / `---`) from a skill
+ * markdown file. `SkillDefinition.content` must be the instruction body after
+ * metadata removal — the same shape the filesystem provider serves — so the
+ * bundled SKILL.md, which keeps its frontmatter for the GitHub/manual install
+ * paths, has the block removed when served through {@link skillProvider.get}.
+ * Tolerant by design: input that does not open with a `---` line, or whose
+ * frontmatter block is never closed, is returned unchanged. Mirrors the
+ * delimiter semantics of the upstream skill-filesystem provider.
+ */
+export function stripFrontmatter(raw: string): string {
+  const firstLineEnd = raw.indexOf('\n')
+  if (firstLineEnd < 0 || raw.slice(0, firstLineEnd).replace(/\r$/, '') !== '---') return raw
+  let lineStart = firstLineEnd + 1
+  while (lineStart <= raw.length) {
+    const nextNewline = raw.indexOf('\n', lineStart)
+    const lineEnd = nextNewline < 0 ? raw.length : nextNewline
+    if (raw.slice(lineStart, lineEnd).replace(/\r$/, '') === '---') {
+      return raw.slice(nextNewline < 0 ? raw.length : nextNewline + 1).trim()
+    }
+    if (nextNewline < 0) return raw
+    lineStart = nextNewline + 1
+  }
+  return raw
+}
+
 export function apply(ctx: Context): void {
+  // `inject = ['skills']` guarantees the service exists on every real host;
+  // register unconditionally so a missing service fails loud instead of
+  // silently dropping the bundled skill.
+  ctx.skills.registerProvider(() => skillProvider)
   const scope = ctx.settings.register(OWN_NS, VaultConfig)
 
   ctx.inject(['commands'], (cmdCtx) => {

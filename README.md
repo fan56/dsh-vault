@@ -26,6 +26,26 @@ Zero npm dependencies: encryption uses only Node's built-in `crypto` (scrypt + A
                                   the macOS keychain for automatic reuse
 ```
 
+## Configuration
+
+All settings live under the top-level `vault:` section in `~/.dsh/settings.yaml` — the same section `/vault set` writes back to:
+
+```yaml
+vault:
+  repo: ""                        # owner/name override; empty = default dsh-backup-<login>
+  machineDescription: ""          # human label recorded in the snapshot manifest
+  rememberPassphrase: false       # store the passphrase in the macOS keychain on backup
+```
+
+Passphrase sources, in order: inline command argument (never logged) →
+`$DSH_VAULT_PASSPHRASE` → the macOS keychain (when `rememberPassphrase` is
+on). GitHub credentials come from `$GITHUB_TOKEN` or a logged-in `gh` CLI.
+
+The plugin ships a bundled skill (`dsh-vault`): ask the agent to configure
+backups or run a first backup and the guide loads automatically — it walks
+the choices interactively (repo, machine description, passphrase memory) and
+writes the `vault:` section for you.
+
 ## Uninstall
 
 ```bash
