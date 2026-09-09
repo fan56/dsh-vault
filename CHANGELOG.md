@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1
+
+### Changed
+
+- 内置 skill 改名：`dsh-vault` → `dsh-vault-config`（生态统一：配置/使用指南类 skill 一律以 `-config` 结尾）。skill 为进程内注册、包外零落盘——升级即自动迁移：更新包并重启 dsh 后新名生效，旧斜杠名 `/dsh-vault` 不再解析，无任何手工清理项。README 内置技能节与 skill 路径同步更新。
+
 ## 0.4.0
 
 ### Added

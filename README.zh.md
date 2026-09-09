@@ -39,7 +39,7 @@ vault:
 macOS 钥匙串（`rememberPassphrase` 开启时）。GitHub 凭据来自 `$GITHUB_TOKEN`
 或已登录的 `gh` CLI。
 
-插件内置了一个 skill（`dsh-vault`）：直接让 agent「帮我配置备份 / 做首次备份」，
+插件内置了一个 skill（`dsh-vault-config`）：直接让 agent「帮我配置备份 / 做首次备份」，
 指南会自动加载——以问答方式逐项收集（仓库、机器描述、口令记忆）并代写 `vault:` 段。
 
 ## 卸载

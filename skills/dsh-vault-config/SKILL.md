@@ -1,5 +1,5 @@
 ---
-name: dsh-vault
+name: dsh-vault-config
 description: "dsh 加密备份插件（@aiwayds/dsh-vault）使用与配置指南。凡涉及 dsh 配置备份、跨机器迁移、/vault backup/restore/list，或要配置 vault 段时先读本指南：settings.yaml 顶层 `vault:` 段（repo/machineDescription/rememberPassphrase）、首次备份 ask_user_question 向导（收集仓库/机器描述/口令记忆后代写配置）、口令三种来源（参数/env/钥匙串）、GitHub 凭据（GITHUB_TOKEN 或 gh 登录）、口令遗失不可解。触发词：vault、备份、恢复、迁移、快照、钥匙串、passphrase、dsh-backup。"
 ---
 

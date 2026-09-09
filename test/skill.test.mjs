@@ -56,13 +56,13 @@ test('apply registers the bundled skill provider on ctx.skills', async () => {
   apply(ctx)
   assert.equal(ctx.registered.length, 1)
   const provider = ctx.registered[0]
-  assert.equal(provider.name, 'dsh-vault')
+  assert.equal(provider.name, 'dsh-vault-config')
 
   const candidates = await provider.list({})
   assert.equal(candidates.length, 1)
   const candidate = candidates[0]
-  assert.equal(candidate.name, 'dsh-vault')
-  assert.equal(candidate.provider, 'dsh-vault')
+  assert.equal(candidate.name, 'dsh-vault-config')
+  assert.equal(candidate.provider, 'dsh-vault-config')
   assert.equal(candidate.source, 'bundled')
   assert.equal(typeof candidate.rank, 'number')
   assert.ok(Number.isFinite(candidate.rank))
@@ -74,7 +74,7 @@ test('apply registers the bundled skill provider on ctx.skills', async () => {
   // (fileURLToPath keeps the trailing slash of the URL path).
   assert.equal(candidate.resourceBase.kind, 'directory')
   assert.ok(
-    candidate.resourceBase.path.replace(/\/$/, '').endsWith('skills/dsh-vault'),
+    candidate.resourceBase.path.replace(/\/$/, '').endsWith('skills/dsh-vault-config'),
     `unexpected resourceBase path: ${candidate.resourceBase.path}`,
   )
 })
@@ -86,7 +86,7 @@ test('provider.get loads the packaged SKILL.md with matching metadata', async ()
   const [candidate] = await provider.list({})
 
   const definition = await provider.get(candidate, {})
-  assert.equal(definition.name, 'dsh-vault')
+  assert.equal(definition.name, 'dsh-vault-config')
   assert.equal(definition.description, candidate.description)
   // SkillDefinition.content is the instruction body after metadata removal:
   // the bundled get() must strip the raw frontmatter the file keeps for the
@@ -96,8 +96,8 @@ test('provider.get loads the packaged SKILL.md with matching metadata', async ()
 
   // Anti-drift: the hardcoded routing description must equal the SKILL.md
   // frontmatter, and the frontmatter itself must satisfy the registry grammar.
-  const markdown = await readFile(new URL('../skills/dsh-vault/SKILL.md', import.meta.url), 'utf8')
-  assert.equal(frontmatterValue(markdown, 'name'), 'dsh-vault')
+  const markdown = await readFile(new URL('../skills/dsh-vault-config/SKILL.md', import.meta.url), 'utf8')
+  assert.equal(frontmatterValue(markdown, 'name'), 'dsh-vault-config')
   assert.equal(frontmatterValue(markdown, 'description'), candidate.description)
 })
 

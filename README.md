@@ -41,7 +41,7 @@ Passphrase sources, in order: inline command argument (never logged) →
 `$DSH_VAULT_PASSPHRASE` → the macOS keychain (when `rememberPassphrase` is
 on). GitHub credentials come from `$GITHUB_TOKEN` or a logged-in `gh` CLI.
 
-The plugin ships a bundled skill (`dsh-vault`): ask the agent to configure
+The plugin ships a bundled skill (`dsh-vault-config`): ask the agent to configure
 backups or run a first backup and the guide loads automatically — it walks
 the choices interactively (repo, machine description, passphrase memory) and
 writes the `vault:` section for you.
