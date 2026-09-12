@@ -2,7 +2,7 @@
  * Postinstall linker: point every `node_modules/@deepseek-ai/*` entry at the
  * global dsh closure.
  *
- * Why this exists: dsh-vault is a plugin that runs *inside* the installed
+ * Why this exists: dsh-tui-pi is a plugin that runs *inside* the installed
  * dsh CLI, and its source imports the `@deepseek-ai/*` packages (cordis,
  * dsh-session, dsh-settings, schemastery, …). Those packages are **not**
  * resolvable from the public npm registry in a usable way (their rc.6
@@ -17,10 +17,7 @@
  * (`Property 'settings' does not exist on type 'Context'`), so they must stay
  * *undeclared*. pnpm then treats the closure links as extraneous — and, as
  * it prunes entries it once managed, the links can still disappear after an
- * install. This script re-creates them on demand (`node
- * scripts/link-dsh-closure.mjs`; CI runs it before check/test). This repo's
- * devDependencies already resolve the @deepseek-ai packages from the public
- * registry, so the link is a same-shape fallback, not the only closure path.
+ * install. This script re-creates them on every `pnpm install` (postinstall).
  *
  * It is a no-op (exit 0) when no global dsh install is found — a dev machine
  * without dsh simply cannot typecheck against dsh types.
@@ -32,12 +29,13 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const repoRoot = dirname(dirname(fileURLToPath(import.meta.url)))
-// Guard: this is a dev-machine convenience for THIS repo. The published
-// tarball ships lib/ + src/, and a consumer (or a stray `npm install` of the
-// tarball into a dsh profile) must never have their @deepseek-ai packages
-// replaced with symlinks into a global dsh closure. Exit silently outside
-// the repo checkout.
-if (!existsSync(join(repoRoot, 'package.json')) || !existsSync(join(repoRoot, '.git'))) {
+// Guard: this postinstall is a dev-machine convenience for THIS repo. A
+// published tarball carries scripts/ but no src/, and must never touch a
+// consumer's node_modules (it would delete their @deepseek-ai packages and
+// replace them with symlinks into their global dsh closure). pnpm ≥10 blocks
+// dependency lifecycle scripts by default, but npm would run this — exit
+// silently outside the repo.
+if (!existsSync(join(repoRoot, 'src'))) {
   process.exit(0)
 }
 const scopeDir = join(repoRoot, 'node_modules', '@deepseek-ai')

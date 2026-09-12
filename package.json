@@ -35,7 +35,8 @@
     "pretest": "tsc -p tsconfig.json",
     "test": "node --test test/crypto.test.mjs test/backupset.test.mjs test/manifest.test.mjs test/table.test.mjs test/command.test.mjs test/skill.test.mjs",
     "smoke": "node scripts/smoke-boot.mjs",
-    "e2e": "./e2e/run-e2e.sh"
+    "e2e": "./e2e/run-e2e.sh",
+    "postinstall": "node scripts/link-dsh-closure.mjs"
   },
   "dependencies": {},
   "peerDependencies": {
