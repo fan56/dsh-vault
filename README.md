@@ -4,7 +4,7 @@ English | [中文](README.zh.md)
 
 A [dsh](https://github.com/deepseek-ai/deepseek-harness) plugin that backs up your dsh home config — **encrypted** — to your own private GitHub repo, and pulls it flat onto a new machine with one command: restore the config, reinstall plugins from the manifest. Cross-machine restore doubles as migration.
 
-**Requires dsh >= 0.1.5-rc.2** — this plugin targets the dsh RC/stable line only (CI and releases resolve the newest of the `latest`/`next` dist-tags at runtime). **The alpha line is no longer supported.**
+**Requires dsh >= 0.1.7-rc.1** — this plugin targets the dsh RC/stable line only (CI and releases resolve the newest of the `latest`/`next` dist-tags at runtime). **The alpha line is no longer supported.**
 
 Zero npm dependencies: encryption uses only Node's built-in `crypto` (scrypt + AES-256-GCM); GitHub transfer goes through the REST API.
 
