@@ -107,6 +107,15 @@ jobs:
           echo "${DSH_DIR}/node_modules/.bin" >> "$GITHUB_PATH"
           echo "DSH_CLOSURE_DIR=${DSH_DIR}/node_modules/@deepseek-ai" >> "$GITHUB_ENV"
 
+      - name: Link dsh closure types
+        # Same step ci.yml runs after installing the CLI (cron-release shape):
+        # the postinstall linker ran BEFORE the dsh install existed (a no-op),
+        # and the 0.1.7-rc.1 closure's dsh-tools hard-imports
+        # @deepseek-ai/dsh-sandbox at runtime — without the relink the unit
+        # suite can die on ERR_MODULE_NOT_FOUND inside dsh-tools (bit cron's
+        # v0.4.0 run; added here preventively for the next vault release).
+        run: node scripts/link-dsh-closure.mjs
+
       - name: Build & Check & Test
         run: pnpm build && pnpm check && pnpm test
 
