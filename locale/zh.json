@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "dsh-vault",
+    "description": "经私有 GitHub 仓库对 dsh home 配置做加密备份、恢复与迁移。"
+  }
+}

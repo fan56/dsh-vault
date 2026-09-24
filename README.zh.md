@@ -26,21 +26,27 @@
 
 ## 配置
 
-全部配置都在 `~/.dsh/settings.yaml` 的顶层 `vault:` 段——与 `/vault set` 写回的是同一段：
+dsh 0.1.7 起，旧的 `settings.yaml` 只在启动时导入一次即改名 `settings.yaml.imported`，插件配置改存 profile patch。配置入口是 `~/.dsh/profiles/<profile>/cordis.patch.yml` 里的 `dsh-vault` 条目——与 `/vault set` 写回的是同一条目（热生效，免重启）：
 
 ```yaml
-vault:
-  repo: ""                        # owner/name 覆盖；空 = 默认 dsh-backup-<用户名>
-  machineDescription: ""          # 写进快照清单的机器描述
-  rememberPassphrase: false       # backup 时把口令存入 macOS 钥匙串
+- id: dsh-vault
+  name: '@aiwayds/dsh-vault'
+  config:
+    repo: ""                        # owner/name 覆盖；空 = 默认 dsh-backup-<用户名>
+    machineDescription: ""          # 写进快照清单的机器描述
+    rememberPassphrase: false       # backup 时把口令存入 macOS 钥匙串
 ```
+
+升级前的旧 `settings.yaml` 顶层 `vault:` 段**不会**自动迁移（entry id 是
+`dsh-vault`，旧段名是 `vault`）——原文留在 `settings.yaml.imported`，用
+`/vault set` 重新设置一次即可。
 
 口令来源优先级：命令内联参数（不落日志）→ `$DSH_VAULT_PASSPHRASE` 环境变量 →
 macOS 钥匙串（`rememberPassphrase` 开启时）。GitHub 凭据来自 `$GITHUB_TOKEN`
 或已登录的 `gh` CLI。
 
 插件内置了一个 skill（`dsh-vault-config`）：直接让 agent「帮我配置备份 / 做首次备份」，
-指南会自动加载——以问答方式逐项收集（仓库、机器描述、口令记忆）并代写 `vault:` 段。
+指南会自动加载——以问答方式逐项收集（仓库、机器描述、口令记忆）并代写 `dsh-vault` 配置。
 
 ## 卸载
 
@@ -53,11 +59,11 @@ dsh plugin --profile tui remove @aiwayds/dsh-vault
 1. **macOS 钥匙串条目**（service + account 均为 `dsh-vault`），存着记住的口令。卸载前先 `/vault set remember-passphrase off` 关掉，或卸载后在「钥匙串访问」里手工删除该条目。
 2. **GitHub 私有仓库 `dsh-backup-<用户名>`**（首次 backup 自动创建），存着加密快照——不需要就在 GitHub 上删除。
 3. **`~/.dsh/vault/stash/`**——最多 3 份 restore 前的整包配置暂存（含 `.credentials.yaml`，权限 0600）。`rm -r ~/.dsh/vault` 清掉。
-4. **`~/.dsh/settings.yaml` 里的 `vault:` 段**——手工删除相关行。
+4. **profile patch（`cordis.patch.yml`）里的 `dsh-vault` 配置条目**，以及 `~/.dsh/settings.yaml.imported` 里存档的旧 `vault:` 段——手工删除相关行。
 
 ## 备份集
 
-**进**：`settings.yaml`、`.credentials.yaml`（API keys）、`APPEND_SYSTEM.md`、`agents/`、每个 profile 的清单四件套（`package.json` / `pnpm-lock.yaml` / `pnpm-workspace.yaml` / `cordis.patch.yml`）、home 级 `cordis.patch.yml`、`models-store.json`。
+**进**：`settings.yaml`、`settings.yaml.imported`（0.1.7 前旧设置的存档，存在即备份）、`.credentials.yaml`（API keys）、`APPEND_SYSTEM.md`、`agents/`、每个 profile 的清单四件套（`package.json` / `pnpm-lock.yaml` / `pnpm-workspace.yaml` / `cordis.patch.yml`——0.1.7 起插件设置就住在 patch 里）、home 级 `cordis.patch.yml`、`models-store.json`。
 
 **不进**：`sessions/`、`storages/`、一切 `node_modules`（按清单重装）、`cordis.yml`（宿主启动时无条件重写）、`.anonymous-user-id`、使用统计。
 

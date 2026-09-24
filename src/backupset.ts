@@ -5,6 +5,13 @@
 // Everything the host regenerates (node_modules, cordis.yml) or that is
 // machine-bound (sessions, storages, anonymous id) is excluded by omission —
 // collect() simply never looks at it.
+//
+// dsh 0.1.7 note: the host imports a legacy top-level settings.yaml once at
+// boot and renames it settings.yaml.imported; user plugin settings now live
+// in each profile's cordis.patch.yml (already collected via PROFILE_FILES).
+// The renamed settings.yaml.imported is the only surviving record of the old
+// values, so it joins the backup set; a still-present settings.yaml (pre- or
+// never-imported home) keeps being backed up for backward compatibility.
 
 import {
   chmodSync,
@@ -22,6 +29,7 @@ import { dirname, join } from 'node:path'
 /** Top-level dsh-home files in the backup set (all optional). */
 const TOP_FILES = [
   'settings.yaml',
+  'settings.yaml.imported',
   '.credentials.yaml',
   'APPEND_SYSTEM.md',
   'models-store.json',

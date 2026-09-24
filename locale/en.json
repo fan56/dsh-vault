@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "dsh-vault",
+    "description": "Encrypted backup, restore and migration of the dsh home config through a private GitHub repo."
+  }
+}

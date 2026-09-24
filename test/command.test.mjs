@@ -24,14 +24,13 @@ const defaultConfig = {
   rememberPassphrase: false,
 }
 
+/** Mimic a 0.1.7 volatile Config field: a live reference with .get(). */
+const ref = (value) => ({ get: () => value })
+
 function createFakeContext({ config = defaultConfig } = {}) {
   const state = {
     definitions: [],
     mutations: [],
-  }
-  const scope = {
-    get: () => config,
-    watch: () => {},
   }
   const settingsService = {
     async mutate(ns, ops) {
@@ -39,7 +38,7 @@ function createFakeContext({ config = defaultConfig } = {}) {
     },
   }
   const ctx = {
-    settings: { register: () => scope },
+    settings: settingsService,
     get: (name) => (name === 'settings' ? settingsService : undefined),
     logger: { info() {}, warn() {}, debug() {} },
     skills: {
@@ -65,7 +64,12 @@ function createFakeContext({ config = defaultConfig } = {}) {
     },
   }
   ctx.state = state
-  return { ctx, state }
+  const runtimeConfig = {
+    repo: ref(config.repo),
+    machineDescription: ref(config.machineDescription),
+    rememberPassphrase: ref(config.rememberPassphrase),
+  }
+  return { ctx, state, runtimeConfig }
 }
 
 const handler = (ctx) => ctx.state.definitions.at(-1)?.handler
@@ -78,8 +82,8 @@ async function run(ctx, input) {
 }
 
 await check('registers exactly one vault command with recordInput off', async () => {
-  const { ctx, state } = createFakeContext()
-  apply(ctx)
+  const { ctx, state, runtimeConfig } = createFakeContext()
+  apply(ctx, runtimeConfig)
   assert.equal(state.definitions.length, 1)
   assert.equal(state.definitions[0].name, 'vault')
   assert.equal(state.definitions[0].recordInput, false)
@@ -87,8 +91,8 @@ await check('registers exactly one vault command with recordInput off', async ()
 })
 
 await check('bare /vault prints help', async () => {
-  const { ctx } = createFakeContext()
-  apply(ctx)
+  const { ctx, runtimeConfig } = createFakeContext()
+  apply(ctx, runtimeConfig)
   const result = await run(ctx, '')
   assert.equal(result.kind, 'success')
   assert.ok(result.text.includes('/vault backup'))
@@ -96,8 +100,8 @@ await check('bare /vault prints help', async () => {
 })
 
 await check('config lists resolved settings without network', async () => {
-  const { ctx } = createFakeContext()
-  apply(ctx)
+  const { ctx, runtimeConfig } = createFakeContext()
+  apply(ctx, runtimeConfig)
   const result = await run(ctx, 'config')
   assert.equal(result.kind, 'success')
   assert.ok(result.text.includes('dsh-backup-<github用户名>'), 'default repo formula shown')
@@ -105,25 +109,26 @@ await check('config lists resolved settings without network', async () => {
 })
 
 await check('set repo validates owner/name shape', async () => {
-  const { ctx } = createFakeContext()
-  apply(ctx)
+  const { ctx, runtimeConfig } = createFakeContext()
+  apply(ctx, runtimeConfig)
   const bad = await run(ctx, 'set repo not-a-repo')
   assert.equal(bad.kind, 'error')
   assert.ok(bad.text.includes('owner/name'))
 })
 
 await check('set repo writes through settings.mutate', async () => {
-  const { ctx, state } = createFakeContext()
-  apply(ctx)
+  const { ctx, state, runtimeConfig } = createFakeContext()
+  apply(ctx, runtimeConfig)
   const result = await run(ctx, 'set repo fan56/dsh-backup-x')
   assert.equal(result.kind, 'success')
   assert.equal(state.mutations.length, 1)
+  assert.equal(state.mutations[0].ns, 'dsh-vault', 'writes target the profile entry id')
   assert.deepEqual(state.mutations[0].ops, [{ op: 'set', path: ['repo'], value: 'fan56/dsh-backup-x' }])
 })
 
 await check('set remember-passphrase on/off mutates boolean and forgets on off', async () => {
-  const { ctx, state } = createFakeContext()
-  apply(ctx)
+  const { ctx, state, runtimeConfig } = createFakeContext()
+  apply(ctx, runtimeConfig)
   const on = await run(ctx, 'set remember-passphrase on')
   assert.equal(on.kind, 'success')
   assert.deepEqual(state.mutations.at(-1).ops, [{ op: 'set', path: ['rememberPassphrase'], value: true }])
@@ -138,8 +143,8 @@ await check('backup without any passphrase source gives guidance, never touches 
   const savedEnv = process.env.DSH_VAULT_PASSPHRASE
   delete process.env.DSH_VAULT_PASSPHRASE
   try {
-    const { ctx } = createFakeContext()
-    apply(ctx)
+    const { ctx, runtimeConfig } = createFakeContext()
+    apply(ctx, runtimeConfig)
     const result = await run(ctx, 'backup')
     assert.equal(result.kind, 'error')
     assert.ok(result.text.includes('需要口令'), 'explains the three passphrase channels')
@@ -150,8 +155,8 @@ await check('backup without any passphrase source gives guidance, never touches 
 })
 
 await check('unknown sub-action is an error carrying help', async () => {
-  const { ctx } = createFakeContext()
-  apply(ctx)
+  const { ctx, runtimeConfig } = createFakeContext()
+  apply(ctx, runtimeConfig)
   const result = await run(ctx, 'frobnicate')
   assert.equal(result.kind, 'error')
   assert.ok(result.text.includes('未知子动作'))

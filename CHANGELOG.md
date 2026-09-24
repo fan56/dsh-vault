@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- dsh 支持下限抬到 `>= 0.1.7-rc.1`（peer floors：`dsh-commands` / `dsh-settings` / `dsh-skill`；README 同步）。dev 闭包随 0.1.7-rc.1 线，cordis 4.0.4 / schemastery 3.18.4 随动（满足新线 peer）。
+- **备份集跟上 0.1.7 settings 新体系**：宿主启动时把旧 settings.yaml 导入一次后改名为 `settings.yaml.imported`，用户插件设置改存各 profile 的 `cordis.patch.yml`。备份目标相应扩展——`settings.yaml.imported`（存在即备份，旧值的唯一存档）进入备份集；profile patch 原本就在清单四件套里，无需改动；旧 `settings.yaml` 存在时照旧备份（向后兼容）。
+- **自身配置迁到 0.1.7 settings 体系**（编译所需，`SettingsScope`/`register` 已删）：`Config` schema 以模块级导出声明（repo / machineDescription / rememberPassphrase，全部 volatile），`apply(ctx, config)` 经 volatile 引用读值；`/vault set` 写回的 ns 从旧命名空间 `vault` 改为 profile entry id `dsh-vault`。**旧 settings.yaml 的 `vault:` 段不会自动迁移**（段名 ≠ entry id），原文留在 `settings.yaml.imported`，用 `/vault set` 重设一次即可。SKILL.md 与 README 配置章节同步改写。
+- Plugin Manager 展示元数据：新增 icon.svg 与 locale/{en,zh}.json（`meta.title`/`meta.description`，官方 readPluginMeta 约定），package.json 声明 `icon` 并将两者入包。
+
 ## 0.5.0
 
 ### Changed

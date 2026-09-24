@@ -20,6 +20,7 @@ import {
 function makeFakeHome() {
   const home = mkdtempSync(join(tmpdir(), 'dsh-vault-home-'))
   writeFileSync(join(home, 'settings.yaml'), 'ui-theme:\n  preference: dark\n')
+  writeFileSync(join(home, 'settings.yaml.imported'), 'ui-theme:\n  preference: dark\nvault:\n  repo: a/b\n')
   writeFileSync(join(home, '.credentials.yaml'), 'version: 1\nrefs:\n  K: v\n', { mode: 0o600 })
   writeFileSync(join(home, 'APPEND_SYSTEM.md'), '# extra\n')
   writeFileSync(join(home, 'models-store.json'), '{}\n')
@@ -59,6 +60,7 @@ test('collect takes portable config and never the regenerable/machine-bound', ()
     const paths = files.map((f) => f.path)
     for (const expected of [
       'settings.yaml',
+      'settings.yaml.imported',
       '.credentials.yaml',
       'APPEND_SYSTEM.md',
       'models-store.json',
@@ -81,6 +83,21 @@ test('collect takes portable config and never the regenerable/machine-bound', ()
       assert.notEqual(forbidden, 'tui-command-usage.json')
     }
     assert.deepEqual(profileNames.sort(), ['headless', 'tui'])
+  } finally {
+    rmSync(home, { recursive: true, force: true })
+  }
+})
+
+test('collect keeps backing up a plain settings.yaml when no .imported file exists', () => {
+  const home = mkdtempSync(join(tmpdir(), 'dsh-vault-home-'))
+  try {
+    // Pre-0.1.7 home (or one where the host never imported): only the
+    // legacy settings.yaml is present — backward compatibility must hold.
+    writeFileSync(join(home, 'settings.yaml'), 'vault:\n  repo: a/b\n')
+    const { files } = collectBackupSet(home)
+    const paths = files.map((f) => f.path)
+    assert.ok(paths.includes('settings.yaml'), 'legacy settings.yaml still collected')
+    assert.ok(!paths.includes('settings.yaml.imported'), 'absent .imported is not fabricated')
   } finally {
     rmSync(home, { recursive: true, force: true })
   }

@@ -2,10 +2,10 @@
  * dsh-vault — encrypted backup / restore / migration of the dsh home config
  * through a private GitHub repo, exposed as the `/vault` slash command.
  *
- * Shape follows the ecosystem conventions: a schemastery settings namespace
- * (`vault`), the command registered from the plugin itself through the shared
- * dsh-commands registry (optional peer, mounted via ctx.inject), zero npm
- * dependencies in the shipped artifact.
+ * Shape follows the ecosystem conventions: a schemastery Config schema
+ * (entry `dsh-vault` in the profile patch), the command registered from the
+ * plugin itself through the shared dsh-commands registry (optional peer,
+ * mounted via ctx.inject), zero npm dependencies in the shipped artifact.
  *
  * @module dsh-vault
  */
@@ -24,10 +24,9 @@ import type { Context } from '@deepseek-ai/cordis'
 // provider object this plugin hands it.
 import type { SkillCandidate, SkillDefinition, SkillProvider } from '@deepseek-ai/dsh-skill'
 // Type-only side-effect import: loads dsh-settings' `declare module
-// '@deepseek-ai/cordis'` augmentation, which is what puts `ctx.settings` on
-// the Context type. There is no runtime import — the host provides the
-// settings service; dsh-settings 0.1.2-alpha.3 removed the
-// settingsNamespace() helper this file used to import.
+// '@deepseek-ai/cordis'` augmentation, which is what puts `ctx.settings`
+// (a SettingsForms service since 0.1.7) on the Context type. There is no
+// runtime import — the host provides the settings service.
 import type {} from '@deepseek-ai/dsh-settings'
 // Types only (erased at emit); dsh-commands is an optional peer, so hosts
 // without it still load this plugin — see the guarded registration below.
@@ -67,21 +66,26 @@ export const name = 'dsh-vault'
  *  the bundled usage/config guide. */
 export const inject = ['settings', 'skills']
 
-// dsh-settings 0.1.2-alpha.3 removed the runtime settingsNamespace() helper:
-// register() now brand-checks the namespace at the type level
-// (SettingsNamespaceInput) and validates the same lowercase-hyphenated
-// pattern at runtime via parseSettingsNamespace. A plain literal is the
-// supported spelling (same adaptation as dsh-model-sync / dsh-cron).
-const OWN_NS = 'vault'
+// dsh 0.1.7 settings: the runtime namespace registry is gone. A plugin's
+// settings page is the projection of its `Config` schema and the namespace
+// is the profile entry id. This plugin mounts with `id: dsh-vault`
+// (cordis.patch.yml), so that literal is the supported spelling for
+// settings writes. A legacy top-level `vault:` section in settings.yaml is
+// NOT auto-imported under this id — the host renames the file to
+// settings.yaml.imported after the one-shot import, and values can be
+// re-entered with /vault set.
+const OWN_NS = 'dsh-vault'
 
-/** The `vault` settings namespace: user-editable in settings.yaml. */
-const VaultConfig = z.object({
+/** The `dsh-vault` config entry: user-editable from the settings page and
+ *  writable at runtime through /vault set. Volatile is the 0.1.7 contract
+ *  for both — the host refuses writes to non-volatile fields. */
+export const Config = z.object({
   /** Vault repo override as `owner/name`; empty = default dsh-backup-<login>. */
-  repo: z.string().default(''),
+  repo: z.string().default('').volatile(),
   /** Human label recorded in the snapshot manifest. */
-  machineDescription: z.string().default(''),
+  machineDescription: z.string().default('').volatile(),
   /** Store the passphrase in the macOS keychain on backup; reuse on restore. */
-  rememberPassphrase: z.boolean().default(false),
+  rememberPassphrase: z.boolean().default(false).volatile(),
 })
 
 interface VaultConfigValue {
@@ -90,9 +94,21 @@ interface VaultConfigValue {
   rememberPassphrase: boolean
 }
 
-/** The settings seam this plugin needs for /vault set. The host's
- *  mutate() validates the namespace at runtime (parseSettingsNamespace),
- *  so the plain 'vault' literal is all it requires. */
+/** Volatile Config fields arrive as live references; `.get()` snapshots the
+ *  current value (the host swaps references in-place on volatile updates). */
+interface VolatileRef<T> {
+  get(): T
+}
+
+export interface VaultRuntimeConfig {
+  repo: VolatileRef<string>
+  machineDescription: VolatileRef<string>
+  rememberPassphrase: VolatileRef<boolean>
+}
+
+/** The settings seam this plugin needs for /vault set. Since 0.1.7 the ns
+ *  is the profile entry id; the local shape keeps the plugin decoupled from
+ *  the full SettingsForms surface. */
 interface SettingsService {
   mutate(
     ns: string,
@@ -160,7 +176,7 @@ const SKILL_INVOCATION = { modelInvocable: true, userInvocable: true } as const
 const BUNDLED_SKILL_RANK = 600
 
 /** Routing description; must stay identical to the SKILL.md frontmatter (asserted in tests). */
-const SKILL_DESCRIPTION = 'dsh 加密备份插件（@aiwayds/dsh-vault）使用与配置指南。凡涉及 dsh 配置备份、跨机器迁移、/vault backup/restore/list，或要配置 vault 段时先读本指南：settings.yaml 顶层 `vault:` 段（repo/machineDescription/rememberPassphrase）、首次备份 ask_user_question 向导（收集仓库/机器描述/口令记忆后代写配置）、口令三种来源（参数/env/钥匙串）、GitHub 凭据（GITHUB_TOKEN 或 gh 登录）、口令遗失不可解。触发词：vault、备份、恢复、迁移、快照、钥匙串、passphrase、dsh-backup。'
+const SKILL_DESCRIPTION = 'dsh 加密备份插件（@aiwayds/dsh-vault）使用与配置指南。凡涉及 dsh 配置备份、跨机器迁移、/vault backup/restore/list，或要配置 vault 时先读本指南：profile patch（cordis.patch.yml）里 `dsh-vault` 条目的 config 段（repo/machineDescription/rememberPassphrase）、首次备份 ask_user_question 向导（收集仓库/机器描述/口令记忆后代写配置）、口令三种来源（参数/env/钥匙串）、GitHub 凭据（GITHUB_TOKEN 或 gh 登录）、口令遗失不可解。触发词：vault、备份、恢复、迁移、快照、钥匙串、passphrase、dsh-backup。'
 
 const SKILL_CANDIDATE: SkillCandidate = {
   name: SKILL_PROVIDER_NAME,
@@ -215,12 +231,11 @@ export function stripFrontmatter(raw: string): string {
   return raw
 }
 
-export function apply(ctx: Context): void {
+export function apply(ctx: Context, config: VaultRuntimeConfig): void {
   // `inject = ['skills']` guarantees the service exists on every real host;
   // register unconditionally so a missing service fails loud instead of
   // silently dropping the bundled skill.
   ctx.skills.registerProvider(() => skillProvider)
-  const scope = ctx.settings.register(OWN_NS, VaultConfig)
 
   ctx.inject(['commands'], (cmdCtx) => {
     const commands = (cmdCtx as {
@@ -270,7 +285,11 @@ export function apply(ctx: Context): void {
   // Shared helpers
   // -----------------------------------------------------------------------
 
-  const cfgNow = (): VaultConfigValue => scope.get() as unknown as VaultConfigValue
+  const cfgNow = (): VaultConfigValue => ({
+    repo: config.repo.get(),
+    machineDescription: config.machineDescription.get(),
+    rememberPassphrase: config.rememberPassphrase.get(),
+  })
 
   const makeClient = async (): Promise<GhClient> => {
     const token = await getGithubToken()

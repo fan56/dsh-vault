@@ -28,14 +28,23 @@ Zero npm dependencies: encryption uses only Node's built-in `crypto` (scrypt + A
 
 ## Configuration
 
-All settings live under the top-level `vault:` section in `~/.dsh/settings.yaml` — the same section `/vault set` writes back to:
+Since dsh 0.1.7 a legacy `settings.yaml` is imported once at boot and renamed
+`settings.yaml.imported`; plugin settings live in the profile patch instead.
+The config entry is `dsh-vault` in `~/.dsh/profiles/<profile>/cordis.patch.yml` — the same entry `/vault set` writes back to (hot, no restart):
 
 ```yaml
-vault:
-  repo: ""                        # owner/name override; empty = default dsh-backup-<login>
-  machineDescription: ""          # human label recorded in the snapshot manifest
-  rememberPassphrase: false       # store the passphrase in the macOS keychain on backup
+- id: dsh-vault
+  name: '@aiwayds/dsh-vault'
+  config:
+    repo: ""                        # owner/name override; empty = default dsh-backup-<login>
+    machineDescription: ""          # human label recorded in the snapshot manifest
+    rememberPassphrase: false       # store the passphrase in the macOS keychain on backup
 ```
+
+A pre-upgrade top-level `vault:` section in `settings.yaml` does **not** migrate
+automatically (the entry id is `dsh-vault`, the old section was `vault`) — the
+original lines survive in `settings.yaml.imported`; re-enter them with
+`/vault set`.
 
 Passphrase sources, in order: inline command argument (never logged) →
 `$DSH_VAULT_PASSPHRASE` → the macOS keychain (when `rememberPassphrase` is
@@ -44,7 +53,7 @@ on). GitHub credentials come from `$GITHUB_TOKEN` or a logged-in `gh` CLI.
 The plugin ships a bundled skill (`dsh-vault-config`): ask the agent to configure
 backups or run a first backup and the guide loads automatically — it walks
 the choices interactively (repo, machine description, passphrase memory) and
-writes the `vault:` section for you.
+writes the `dsh-vault` config entry for you.
 
 ## Uninstall
 
@@ -57,11 +66,11 @@ The host cleans up the profile automatically: the `dsh.profile.bundles` entry is
 1. **The macOS Keychain item** (service + account `dsh-vault`) holding a remembered passphrase. Turn it off before uninstalling with `/vault set remember-passphrase off`, or delete the item afterwards in Keychain Access.
 2. **The private GitHub repo `dsh-backup-<login>`** holding your encrypted snapshots (auto-created on first backup) — delete it on GitHub if unwanted.
 3. **`~/.dsh/vault/stash/`** — up to 3 pre-restore stashes of the full config, including `.credentials.yaml` (mode 0600). Purge with `rm -r ~/.dsh/vault`.
-4. **The `vault:` section in `~/.dsh/settings.yaml`** — remove the lines by hand.
+4. **The `dsh-vault` config entry in the profile patch (`cordis.patch.yml`)** and the archived `vault:` section inside `~/.dsh/settings.yaml.imported` — remove the lines by hand.
 
 ## Backup set
 
-**In**: `settings.yaml`, `.credentials.yaml` (API keys), `APPEND_SYSTEM.md`, `agents/`, each profile's manifest four-pack (`package.json` / `pnpm-lock.yaml` / `pnpm-workspace.yaml` / `cordis.patch.yml`), the home-level `cordis.patch.yml`, and `models-store.json`.
+**In**: `settings.yaml`, `settings.yaml.imported` (the archived pre-0.1.7 settings; backed up when present), `.credentials.yaml` (API keys), `APPEND_SYSTEM.md`, `agents/`, each profile's manifest four-pack (`package.json` / `pnpm-lock.yaml` / `pnpm-workspace.yaml` / `cordis.patch.yml` — the patch is where 0.1.7+ plugin settings live), the home-level `cordis.patch.yml`, and `models-store.json`.
 
 **Out**: `sessions/`, `storages/`, every `node_modules` (reinstalled from the manifest), `cordis.yml` (unconditionally rewritten by the host at startup), `.anonymous-user-id`, usage stats.
 
