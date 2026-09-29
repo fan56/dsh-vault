@@ -11,8 +11,25 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 IMAGE="${IMAGE:-localhost/dsh-vault-e2e:latest}"
 
+# Same resolution rule as ci.yml / release.yml and the dsh-cron/dsh-tui-pi
+# runners: newest of the `latest` (stable) and `next` (rc) dist-tags, never
+# hand-pinned. The container's global dsh closure is what the postinstall
+# linker resolves @deepseek-ai/* against — a stale host here breaks the
+# in-image build (the 0.1.7 closure ships pre-volatile schemastery).
+NPM_VIEW_REG=""
+if ! npm view @deepseek-ai/dsh@latest version >/dev/null 2>&1; then
+  NPM_VIEW_REG="--registry=https://registry.npmjs.org"
+fi
+STABLE="$(npm view @deepseek-ai/dsh@latest version $NPM_VIEW_REG)"
+RC="$(npm view @deepseek-ai/dsh@next version $NPM_VIEW_REG 2>/dev/null || true)"
+DSH_VERSION="$STABLE"
+if [ -n "$RC" ] && [ "$(printf '%s\n' "$STABLE" "$RC" | sort -V | tail -1)" = "$RC" ]; then
+  DSH_VERSION="$RC"
+fi
+printf '==> dsh closure: %s\n' "$DSH_VERSION"
+
 printf '==> building image %s (context: %s)\n' "$IMAGE" "$REPO_ROOT"
-podman build -f "$REPO_ROOT/e2e/Containerfile" -t "$IMAGE" "$REPO_ROOT"
+podman build --build-arg DSH_VERSION="$DSH_VERSION" -f "$REPO_ROOT/e2e/Containerfile" -t "$IMAGE" "$REPO_ROOT"
 
 printf '==> running scenario suite (all state stays inside the container)\n'
 podman run --rm --name dsh-vault-e2e \

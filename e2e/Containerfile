@@ -39,12 +39,15 @@ RUN case "$(uname -m)" in \
 
 # pnpm + the dsh CLI (version resolved from the registry when the ARG is
 # empty). The global dsh install is what the boot smoke boots against.
+# NB: the version print is cosmetic, but the install chain must hard-fail —
+# `... && dsh --version || true` masks the WHOLE chain (operator
+# precedence), silently committing dsh-less images.
 RUN DSH_VER="${DSH_VERSION:-$(npm view @deepseek-ai/dsh version)}" \
  && echo "installing @deepseek-ai/dsh@${DSH_VER}" \
  && npm install -g --no-fund --no-audit \
       pnpm@${PNPM_VERSION} \
       "@deepseek-ai/dsh@${DSH_VER}" \
- && dsh --version || true
+ && (dsh --version || true)
 
 WORKDIR /app
 
