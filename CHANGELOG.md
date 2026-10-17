@@ -4,6 +4,7 @@
 
 ### Changed
 
+- **0.2.1 host-line adaptation (0.2.1-rc.2 closure)**: devDeps pins `@deepseek-ai/dsh-commands` / `dsh-settings` / `dsh-skill` `0.2.0-rc.2` → `0.2.1-rc.2` (pnpm-lock re-resolved against registry.npmjs.org; cordis 4.0.4 / schemastery 3.18.4 pins unchanged). Peer floors untouched: `>=0.2.0-rc.2` stays true on both host lines — the host preflight matches with `semver.satisfies(..., { includePrerelease: true })`, verified live on a 0.2.1-rc.2 scratch host (plugin composes into the profile tree, boots clean, the `/vault` command registers). ci.yml: the 2026-10-17 pin-tower hunk reverted — newest-of(`latest`,`next`) live selection restored. Zero source changes.
 - **Raise dsh host floor to 0.2.0-rc.2**（peer floors：`dsh-commands` / `dsh-settings` / `dsh-skill` `>=0.2.0-rc.2`；dev 钉 exact `0.2.0-rc.2`，pnpm-lock 对 registry.npmjs.org 重解析；README 同步）。cordis 4.0.4 / schemastery 3.18.4 钉版保持不动；零源码改动，0.2.0 为消化波。
 - dsh 支持下限抬到 `>= 0.1.7-rc.1`（peer floors：`dsh-commands` / `dsh-settings` / `dsh-skill`；README 同步）。dev 闭包随 0.1.7-rc.1 线，cordis 4.0.4 / schemastery 3.18.4 随动（满足新线 peer）。
 - **备份集跟上 0.1.7 settings 新体系**：宿主启动时把旧 settings.yaml 导入一次后改名为 `settings.yaml.imported`，用户插件设置改存各 profile 的 `cordis.patch.yml`。备份目标相应扩展——`settings.yaml.imported`（存在即备份，旧值的唯一存档）进入备份集；profile patch 原本就在清单四件套里，无需改动；旧 `settings.yaml` 存在时照旧备份（向后兼容）。
