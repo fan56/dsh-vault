@@ -1,6 +1,6 @@
 {
   "name": "@aiwayds/dsh-vault",
-  "version": "0.1.0",
+  "version": "0.8.0",
   "description": "dsh-plugin: encrypted backup / restore / migration of the dsh home config through a private GitHub repo",
   "type": "module",
   "main": "lib/index.js",
