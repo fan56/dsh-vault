@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.1 (2026-11-12)
+
+### Fixed
+
+- **0.8.0 tarball broken: postinstall declared but its script never shipped** — package.json declared `scripts.postinstall` (`node scripts/link-dsh-closure.mjs`) while the `files` whitelist never listed `scripts/`, so the published tarball had no such file and every consumer install died with MODULE_NOT_FOUND (taking the whole `pnpm add` batch down with it). Fixed in two layers: (1) `files` now ships `scripts/` — the whole dir, drift-proof against future postinstall additions (dev-only `e2e-host.mjs` / `smoke-boot.mjs` are inert in the tarball); (2) the postinstall hook is now an inline existence check that runs the linker only when the file actually shipped, and warns + exits 0 otherwise — even if `files` drifts again, consumer installs can no longer hard-fail. Also fixed the linker's consumer guard: it probed `src/` as the consumer-install signal, but `src` ships IN the tarball (the 0.8.0 manifest includes `package/src/*`), so with `scripts/` now shipped the old guard would have passed on consumer machines and `rm -rf`ed their `@deepseek-ai/*` into symlinks to a global dsh closure. The guard now probes `.git`, which npm never packs regardless of the `files` whitelist.
+
 ## 0.8.0 (2026-11-06)
 
 ### Changed

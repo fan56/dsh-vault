@@ -1,6 +1,6 @@
 {
   "name": "@aiwayds/dsh-vault",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "dsh-plugin: encrypted backup / restore / migration of the dsh home config through a private GitHub repo",
   "type": "module",
   "main": "lib/index.js",
@@ -29,6 +29,7 @@
     "cordis.patch.yml",
     "src",
     "skills",
+    "scripts",
     "icon.svg",
     "locale/*.json"
   ],
@@ -39,7 +40,7 @@
     "test": "node --test test/crypto.test.mjs test/backupset.test.mjs test/manifest.test.mjs test/table.test.mjs test/command.test.mjs test/skill.test.mjs",
     "smoke": "node scripts/smoke-boot.mjs",
     "e2e": "./e2e/run-e2e.sh",
-    "postinstall": "node scripts/link-dsh-closure.mjs"
+    "postinstall": "node -e \"const p = 'scripts/link-dsh-closure.mjs'; if (!require('node:fs').existsSync(p)) { console.warn('[dsh-vault] ' + p + ' missing from this install — skipping postinstall'); } else { require('node:child_process').execFileSync(process.execPath, [p], { stdio: 'inherit' }); }\""
   },
   "dependencies": {},
   "peerDependencies": {
