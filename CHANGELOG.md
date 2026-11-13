@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **0.2.2-rc.2 closure ride**: devDeps pins `@deepseek-ai/dsh-commands` / `dsh-settings` / `dsh-skill` `0.2.2-rc.1` → `0.2.2-rc.2` (pnpm-lock re-resolved against registry.npmjs.org; `cordis` 4.1.0 / `schemastery` 3.19.0 pins unchanged). The lockfile advance also carries the transitive `zod` 4.4.3 → 4.6.6 drift from the rc.2 closure. Peer floors untouched: `>=0.2.0-rc.2` stays true on the new rc — the host preflight matches ranges with `includePrerelease`. Zero source changes. Verified against the rc.2 dev closure: e2e suite fully PASS on this branch's adapted state.
+
 ## 0.8.1 (2026-11-12)
 
 ### Fixed
