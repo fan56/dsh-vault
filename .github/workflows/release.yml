@@ -134,7 +134,7 @@ jobs:
 
       - name: Link dsh closure types
         # Same step ci.yml runs after installing the CLI (cron-release shape):
-        # the postinstall linker ran BEFORE the dsh install existed (a no-op),
+        # the install-hook linker ran BEFORE the dsh install existed (a no-op),
         # and the 0.1.7-rc.1 closure's dsh-tools hard-imports
         # @deepseek-ai/dsh-sandbox at runtime — without the relink the unit
         # suite can die on ERR_MODULE_NOT_FOUND inside dsh-tools (bit cron's

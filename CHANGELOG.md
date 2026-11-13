@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.8.2 (2026-11-13)
+
+### Fixed
+
+- **The published package no longer carries an install lifecycle hook — the inline `postinstall` became `prepare` — so pnpm 11 updates stop failing with `ERR_PNPM_IGNORED_BUILDS` (fixing pnpm 11 strictDepBuilds update failures; see dsh-subagent-registry#10).** pnpm 11 defaults to `strictDepBuilds`: an install of a dependency declaring an unapproved `preinstall`/`install`/`postinstall` exits non-zero, and the dsh host plugin manager rolls the update back — with 0.8.1's `postinstall` every plugin update failed that gate. The hook was only ever a dev-machine convenience (the linker stands down outside a repo checkout, so it was already a no-op in consumer trees); npm and pnpm never run `prepare` for registry dependencies, and pnpm's gate set is exactly those three install hooks, so the published manifest is now hook-free while the dev closure linking keeps running from the root `prepare` hook (CI's explicit `node scripts/link-dsh-closure.mjs` step is unaffected).
+- **The closure linker's stand-down guard also exits when `INIT_CWD` is set and is not the repo root** — npm runs `prepare` inside a throwaway clone when installing a git dependency, and a root install invoked from a subdirectory resolves here with an `INIT_CWD` elsewhere. `INIT_CWD` equal to the repo root (a normal root install) and an unset `INIT_CWD` (a direct `node scripts/link-dsh-closure.mjs` call) still link; a `realpathSync` failure exits 0. The boot smoke also locates its packed tarball by enumerating the pack destination instead of parsing `npm pack` stdout, which the `prepare` hook would now pollute.
 
 ### Changed
 

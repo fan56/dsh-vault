@@ -13,7 +13,7 @@ IMAGE="${IMAGE:-localhost/dsh-vault-e2e:latest}"
 
 # Same resolution rule as ci.yml / release.yml and the dsh-cron/dsh-tui-pi
 # runners: newest of the `latest` (stable) and `next` (rc) dist-tags, never
-# hand-pinned. The container's global dsh closure is what the postinstall
+# hand-pinned. The container's global dsh closure is what the install-hook
 # linker resolves @deepseek-ai/* against — a stale host here breaks the
 # in-image build (the 0.1.7 closure ships pre-volatile schemastery).
 NPM_VIEW_REG=""
